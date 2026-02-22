@@ -1,0 +1,1127 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MARCE — Agente de Inversiones IA</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0e1a;
+    --surface: #111827;
+    --surface2: #1a2235;
+    --border: #1e2d45;
+    --accent: #00e5ff;
+    --accent2: #7c3aed;
+    --green: #00ff9d;
+    --red: #ff4d6d;
+    --yellow: #ffd60a;
+    --text: #e2e8f0;
+    --muted: #64748b;
+    --font-mono: 'DM Mono', monospace;
+    --font-display: 'Syne', sans-serif;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-mono);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* GRID BACKGROUND */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(0,229,255,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,229,255,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* HEADER */
+  header {
+    position: relative;
+    z-index: 10;
+    padding: 20px 30px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: rgba(10,14,26,0.95);
+    backdrop-filter: blur(10px);
+  }
+
+  .logo {
+    font-family: var(--font-display);
+    font-size: 22px;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+    color: var(--accent);
+  }
+
+  .logo span { color: var(--text); }
+
+  .status-bar {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    font-size: 11px;
+    color: var(--muted);
+  }
+
+  .status-dot {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--green);
+    animation: pulse 2s infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(0,255,157,0.4); }
+    50% { opacity: 0.7; box-shadow: 0 0 0 6px rgba(0,255,157,0); }
+  }
+
+  /* MAIN LAYOUT */
+  .main {
+    position: relative;
+    z-index: 1;
+    display: grid;
+    grid-template-columns: 1fr 420px;
+    height: calc(100vh - 65px);
+  }
+
+  /* LEFT PANEL — DASHBOARD */
+  .dashboard-panel {
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .panel-header {
+    padding: 16px 24px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .panel-title {
+    font-family: var(--font-display);
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  .btn-refresh {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--accent);
+    padding: 6px 14px;
+    border-radius: 4px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .btn-refresh:hover {
+    background: var(--accent);
+    color: var(--bg);
+  }
+
+  /* STATS ROW */
+  .stats-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1px;
+    background: var(--border);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .stat-card {
+    background: var(--surface);
+    padding: 14px 20px;
+  }
+
+  .stat-label {
+    font-size: 10px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 4px;
+  }
+
+  .stat-value {
+    font-family: var(--font-display);
+    font-size: 22px;
+    font-weight: 700;
+  }
+
+  .stat-value.green { color: var(--green); }
+  .stat-value.red   { color: var(--red); }
+  .stat-value.cyan  { color: var(--accent); }
+  .stat-value.yellow { color: var(--yellow); }
+
+  /* TABLE */
+  .table-wrap {
+    flex: 1;
+    overflow-y: auto;
+  }
+
+  .table-wrap::-webkit-scrollbar { width: 4px; }
+  .table-wrap::-webkit-scrollbar-track { background: var(--bg); }
+  .table-wrap::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+  }
+
+  thead th {
+    position: sticky;
+    top: 0;
+    background: var(--surface2);
+    padding: 10px 14px;
+    text-align: left;
+    font-size: 10px;
+    font-weight: 500;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    border-bottom: 1px solid var(--border);
+    z-index: 5;
+  }
+
+  tbody tr {
+    border-bottom: 1px solid rgba(30,45,69,0.5);
+    transition: background 0.15s;
+    cursor: pointer;
+  }
+
+  tbody tr:hover { background: var(--surface2); }
+
+  td {
+    padding: 10px 14px;
+    white-space: nowrap;
+  }
+
+  .ticker-cell {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 13px;
+    color: var(--accent);
+  }
+
+  .price-cell {
+    font-weight: 500;
+    color: var(--text);
+  }
+
+  .var-pos { color: var(--green); }
+  .var-neg { color: var(--red); }
+
+  .rsi-badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 3px;
+    font-size: 11px;
+    font-weight: 500;
+  }
+
+  .rsi-low  { background: rgba(0,255,157,0.15); color: var(--green); }
+  .rsi-high { background: rgba(255,77,109,0.15); color: var(--red); }
+  .rsi-mid  { background: rgba(100,116,139,0.15); color: var(--muted); }
+
+  .op-badge {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 3px;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+  }
+
+  .op-compra { background: rgba(0,255,157,0.2); color: var(--green); border: 1px solid rgba(0,255,157,0.3); }
+  .op-venta  { background: rgba(255,77,109,0.2); color: var(--red);   border: 1px solid rgba(255,77,109,0.3); }
+  .op-neutro { background: rgba(100,116,139,0.1); color: var(--muted); border: 1px solid var(--border); }
+
+  .trend-up   { color: var(--green); font-size: 11px; }
+  .trend-down { color: var(--red);   font-size: 11px; }
+
+  /* RIGHT PANEL — CHAT IA */
+  .chat-panel {
+    display: flex;
+    flex-direction: column;
+    background: var(--surface);
+  }
+
+  .chat-header {
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .ai-avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    background: linear-gradient(135deg, var(--accent2), var(--accent));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--font-display);
+    font-weight: 800;
+    font-size: 14px;
+    color: white;
+    flex-shrink: 0;
+  }
+
+  .ai-info { flex: 1; }
+
+  .ai-name {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 14px;
+    color: var(--text);
+  }
+
+  .ai-sub {
+    font-size: 10px;
+    color: var(--muted);
+    margin-top: 1px;
+  }
+
+  .chat-messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    min-height: 0;
+    height: 0;
+  }
+
+  .chat-messages::-webkit-scrollbar { width: 3px; }
+  .chat-messages::-webkit-scrollbar-thumb { background: var(--border); }
+
+  .msg {
+    display: flex;
+    gap: 10px;
+    animation: fadeUp 0.3s ease;
+  }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .msg.user { flex-direction: row-reverse; }
+
+  .msg-avatar {
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    font-weight: 700;
+    flex-shrink: 0;
+  }
+
+  .msg.ai .msg-avatar   { background: linear-gradient(135deg, var(--accent2), var(--accent)); color: white; }
+  .msg.user .msg-avatar { background: var(--surface2); color: var(--muted); border: 1px solid var(--border); }
+
+  .msg-bubble {
+    max-width: 85%;
+    padding: 10px 14px;
+    border-radius: 8px;
+    font-size: 12.5px;
+    line-height: 1.6;
+  }
+
+  .msg.ai .msg-bubble {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    border-top-left-radius: 2px;
+  }
+
+  .msg.user .msg-bubble {
+    background: linear-gradient(135deg, var(--accent2), #5b21b6);
+    color: white;
+    border-top-right-radius: 2px;
+  }
+
+  .msg-time {
+    font-size: 9px;
+    color: var(--muted);
+    margin-top: 4px;
+    padding: 0 4px;
+  }
+
+  .msg.user .msg-time { text-align: right; }
+
+  /* TYPING INDICATOR */
+  .typing {
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+  }
+
+  .typing-dots {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    border-top-left-radius: 2px;
+    padding: 12px 16px;
+    display: flex;
+    gap: 4px;
+    align-items: center;
+  }
+
+  .typing-dots span {
+    width: 6px;
+    height: 6px;
+    background: var(--muted);
+    border-radius: 50%;
+    animation: blink 1.2s infinite;
+  }
+
+  .typing-dots span:nth-child(2) { animation-delay: 0.2s; }
+  .typing-dots span:nth-child(3) { animation-delay: 0.4s; }
+
+  @keyframes blink {
+    0%, 80%, 100% { opacity: 0.3; transform: scale(0.8); }
+    40% { opacity: 1; transform: scale(1); }
+  }
+
+  /* CHAT INPUT */
+  .chat-input-area {
+    padding: 16px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    gap: 10px;
+    align-items: flex-end;
+  }
+
+  .chat-input {
+    flex: 1;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 14px;
+    color: var(--text);
+    font-family: var(--font-mono);
+    font-size: 12.5px;
+    resize: none;
+    min-height: 42px;
+    max-height: 120px;
+    outline: none;
+    transition: border-color 0.2s;
+    line-height: 1.5;
+  }
+
+  .chat-input:focus { border-color: var(--accent); }
+  .chat-input::placeholder { color: var(--muted); }
+
+  .btn-send {
+    background: linear-gradient(135deg, var(--accent2), var(--accent));
+    border: none;
+    border-radius: 8px;
+    width: 42px;
+    height: 42px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: opacity 0.2s, transform 0.1s;
+    flex-shrink: 0;
+  }
+
+  .btn-send:hover { opacity: 0.85; }
+  .btn-send:active { transform: scale(0.95); }
+
+  .btn-send svg { width: 16px; height: 16px; fill: white; }
+
+  /* QUICK ACTIONS */
+  .quick-actions {
+    padding: 0 16px 12px;
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+
+  .quick-btn {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    color: var(--muted);
+    padding: 5px 10px;
+    border-radius: 4px;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+  }
+
+  .quick-btn:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+
+  /* LOADING */
+  .loading-overlay {
+    position: fixed;
+    inset: 0;
+    background: var(--bg);
+    z-index: 100;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 20px;
+  }
+
+  .loading-logo {
+    font-family: var(--font-display);
+    font-size: 36px;
+    font-weight: 800;
+    color: var(--accent);
+    letter-spacing: -1px;
+  }
+
+  .loading-bar {
+    width: 200px;
+    height: 2px;
+    background: var(--border);
+    border-radius: 1px;
+    overflow: hidden;
+  }
+
+  .loading-progress {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent2), var(--accent));
+    border-radius: 1px;
+    animation: load 2s ease-in-out forwards;
+  }
+
+  @keyframes load {
+    from { width: 0%; }
+    to   { width: 100%; }
+  }
+
+  .loading-text {
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: 1px;
+  }
+
+  /* TICKER DETAIL POPUP */
+  .popup-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.7);
+    z-index: 50;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(4px);
+  }
+
+  .popup-overlay.show { display: flex; }
+
+  .popup {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 24px;
+    width: 440px;
+    max-width: 90vw;
+  }
+
+  .popup-title {
+    font-family: var(--font-display);
+    font-size: 20px;
+    font-weight: 800;
+    color: var(--accent);
+    margin-bottom: 16px;
+  }
+
+  .popup-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 16px;
+  }
+
+  .popup-item {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 10px 12px;
+  }
+
+  .popup-item-label { font-size: 10px; color: var(--muted); margin-bottom: 3px; }
+  .popup-item-value { font-size: 15px; font-weight: 500; }
+
+  .popup-actions {
+    display: flex;
+    gap: 10px;
+  }
+
+  .btn-analyze {
+    flex: 1;
+    background: linear-gradient(135deg, var(--accent2), var(--accent));
+    border: none;
+    border-radius: 6px;
+    padding: 10px;
+    color: white;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    cursor: pointer;
+    transition: opacity 0.2s;
+  }
+
+  .btn-analyze:hover { opacity: 0.85; }
+
+  .btn-close-popup {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 10px 16px;
+    color: var(--muted);
+    font-family: var(--font-mono);
+    font-size: 12px;
+    cursor: pointer;
+  }
+
+  /* HIGHLIGHT en tabla */
+  .row-compra { background: rgba(0,255,157,0.03) !important; }
+  .row-venta  { background: rgba(255,77,109,0.03) !important; }
+
+  /* SCROLLBAR */
+  ::-webkit-scrollbar { width: 4px; height: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+</style>
+</head>
+<body>
+
+<!-- LOADING -->
+<div class="loading-overlay" id="loadingOverlay">
+  <div class="loading-logo">MARCE</div>
+  <div class="loading-bar"><div class="loading-progress"></div></div>
+  <div class="loading-text">Cargando datos del mercado...</div>
+</div>
+
+<!-- POPUP DETALLE -->
+<div class="popup-overlay" id="popupOverlay">
+  <div class="popup">
+    <div class="popup-title" id="popupTicker">—</div>
+    <div class="popup-grid" id="popupGrid"></div>
+    <div class="popup-actions">
+      <button class="btn-analyze" onclick="analyzeTickerFromPopup()">🤖 Analizar con IA</button>
+      <button class="btn-close-popup" onclick="closePopup()">Cerrar</button>
+    </div>
+  </div>
+</div>
+
+<!-- HEADER -->
+<header>
+  <div class="logo">MARCE <span>AGENTE IA</span></div>
+  <div class="status-bar">
+    <div class="status-dot">
+      <div class="dot"></div>
+      <span id="statusText">Conectando...</span>
+    </div>
+    <span id="lastUpdate">—</span>
+  </div>
+</header>
+
+<!-- MAIN -->
+<div class="main">
+
+  <!-- DASHBOARD -->
+  <div class="dashboard-panel">
+    <div class="panel-header">
+      <div class="panel-title">Dashboard de Mercado</div>
+      <button class="btn-refresh" onclick="loadData()">↻ Actualizar</button>
+    </div>
+
+    <div class="stats-row">
+      <div class="stat-card">
+        <div class="stat-label">Oportunidades</div>
+        <div class="stat-value cyan" id="statOp">—</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Señales compra</div>
+        <div class="stat-value green" id="statCompra">—</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Señales venta</div>
+        <div class="stat-value red" id="statVenta">—</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">RSI Promedio</div>
+        <div class="stat-value yellow" id="statRSI">—</div>
+      </div>
+    </div>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Ticker</th>
+            <th>Precio</th>
+            <th>Var%</th>
+            <th>RSI</th>
+            <th>Tendencia</th>
+            <th>Koncorde</th>
+            <th>Señal</th>
+          </tr>
+        </thead>
+        <tbody id="tableBody">
+          <tr><td colspan="7" style="text-align:center;color:var(--muted);padding:40px">Cargando...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- CHAT -->
+  <div class="chat-panel">
+    <div class="chat-header">
+      <div class="ai-avatar">M</div>
+      <div class="ai-info">
+        <div class="ai-name">MARCE IA</div>
+        <div class="ai-sub">Agente de inversiones autónomo</div>
+      </div>
+    </div>
+
+    <div class="chat-messages" id="chatMessages"></div>
+
+    <div class="quick-actions">
+      <button class="quick-btn" onclick="quickAction('¿Qué oportunidades de compra hay ahora?')">🟢 Oportunidades</button>
+      <button class="quick-btn" onclick="quickAction('¿Qué acciones están en zona de peligro?')">🔴 Peligros</button>
+      <button class="quick-btn" onclick="quickAction('Hacé un análisis general del mercado actual')">📊 Análisis general</button>
+      <button class="quick-btn" onclick="quickAction('¿Qué acciones tienen RSI en sobreventa?')">📉 Sobreventa</button>
+    </div>
+
+    <div class="chat-input-area">
+      <textarea class="chat-input" id="chatInput" placeholder="Preguntame lo que quieras sobre el mercado..." rows="1"
+        onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendMessage()}"
+        oninput="this.style.height='auto';this.style.height=Math.min(this.scrollHeight,120)+'px'"></textarea>
+      <button class="btn-send" onclick="sendMessage()">
+        <svg viewBox="0 0 24 24"><path d="M2 21l21-9L2 3v7l15 2-15 2z"/></svg>
+      </button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ===================== CONFIG =====================
+const GEMINI_API_KEY = "AIzaSyAsmhc-IASTyOascEb_el8rYFEqxbw9Q-c";
+const SHEET_API_URL = "https://script.google.com/macros/s/AKfycbzxi1YJKFibKIOEE_mGMcYWa7FxnFA02rabZOH9Mr4UMWtTqbN7FXgM_gtDp3Eos4vp/exec";
+const GEMINI_URL     = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`;
+
+// ===================== STATE =====================
+let marketData    = [];
+let selectedTicker = null;
+let autoAnalysisInterval = null;
+
+// ===================== LOAD DATA =====================
+async function loadData() {
+  try {
+    document.getElementById('statusText').textContent = 'Actualizando...';
+    const res  = await fetch(SHEET_API_URL + '?t=' + Date.now());
+    const json = await res.json();
+    if (!json || !json.length) throw new Error("Sin datos");
+
+    marketData = json.map(row => {
+      const obj = {};
+      Object.keys(row).forEach(k => {
+        const key = k.trim().toLowerCase();
+        const val = String(row[k] || '').trim();
+        obj[key] = val;
+        if (key.startsWith('var')) obj['var%'] = val;
+        if (key.startsWith('koncorde')) obj['koncorde'] = val;
+        if (key === 'señal' || key === 'senal' || key === 'signal') obj['señal'] = val;
+        if (key === 'rsi14') obj['rsi'] = val;
+      });
+      return obj;
+    }).filter(d => d['ticker'] && d['ticker'] !== '');
+
+    renderTable();
+    updateStats();
+    document.getElementById('statusText').textContent = 'En línea';
+    document.getElementById('lastUpdate').textContent = 'Actualizado ' + new Date().toLocaleTimeString('es-AR', {hour:'2-digit',minute:'2-digit'});
+
+    // Ocultar loading
+    const overlay = document.getElementById('loadingOverlay');
+    if (overlay.style.display !== 'none') {
+      overlay.style.opacity = '0';
+      overlay.style.transition = 'opacity 0.5s';
+      setTimeout(() => overlay.style.display = 'none', 500);
+    }
+
+    return true;
+  } catch(e) {
+    document.getElementById('statusText').textContent = 'Error de conexión';
+    console.error('Error cargando datos:', e);
+    return false;
+  }
+}
+
+function parseCSV(text) {
+  return text.trim().split('\n').map(line => {
+    const result = [];
+    let current = '';
+    let inQuotes = false;
+    for (let i = 0; i < line.length; i++) {
+      if (line[i] === '"') { inQuotes = !inQuotes; }
+      else if (line[i] === ',' && !inQuotes) { result.push(current); current = ''; }
+      else { current += line[i]; }
+    }
+    result.push(current);
+    return result;
+  });
+}
+
+// ===================== RENDER TABLE =====================
+function renderTable() {
+  const tbody = document.getElementById('tableBody');
+
+  if (!marketData.length) {
+    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:40px">Sin datos disponibles</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = marketData.map(d => {
+    const ticker   = d['ticker'] || d[''] || '';
+    const precio   = parseFloat(d['precio']) || 0;
+    const varp     = parseFloat(d['var%'] || d['var %'] || d['variación'] || 0);
+    const rsi      = parseFloat(d['rsi'] || d['rsi14'] || 0);
+    const tendencia = d['tendencia'] || '';
+    const koncorde = parseFloat(d['koncorde'] || d['koncordelike'] || d['koncorde '] || 0);
+    const op       = d['oportunidad'] || 'NEUTRO';
+
+    if (!ticker) return '';
+
+    const varClass  = varp >= 0 ? 'var-pos' : 'var-neg';
+    const varSign   = varp >= 0 ? '+' : '';
+    const rsiClass  = rsi < 30 ? 'rsi-low' : rsi > 70 ? 'rsi-high' : 'rsi-mid';
+    const tendClass = tendencia === 'ALCISTA' ? 'trend-up' : 'trend-down';
+    const tendIcon  = tendencia === 'ALCISTA' ? '▲' : '▼';
+    const opClass   = op === 'COMPRA' ? 'op-compra' : op === 'VENTA' ? 'op-venta' : 'op-neutro';
+    const rowClass  = op === 'COMPRA' ? 'row-compra' : op === 'VENTA' ? 'row-venta' : '';
+    const konColor  = koncorde > 30 ? 'var(--green)' : koncorde < -30 ? 'var(--red)' : 'var(--muted)';
+
+    return `
+      <tr class="${rowClass}" onclick="showPopup('${ticker}')">
+        <td class="ticker-cell">${ticker}</td>
+        <td class="price-cell">$${precio > 0 ? precio.toFixed(2) : '—'}</td>
+        <td class="${varClass}">${precio > 0 ? varSign + varp.toFixed(2) + '%' : '—'}</td>
+        <td><span class="rsi-badge ${rsiClass}">${rsi > 0 ? rsi.toFixed(1) : '—'}</span></td>
+        <td class="${tendClass}">${tendencia ? tendIcon + ' ' + tendencia : '—'}</td>
+        <td style="color:${konColor};font-weight:500">${isNaN(koncorde) ? '—' : koncorde.toFixed(1)}</td>
+        <td><span class="op-badge ${opClass}">${op}</span></td>
+      </tr>`;
+  }).join('');
+}
+
+// ===================== STATS =====================
+function updateStats() {
+  const compras  = marketData.filter(d => (d['oportunidad']||'') === 'COMPRA').length;
+  const ventas   = marketData.filter(d => (d['oportunidad']||'') === 'VENTA').length;
+  const total    = compras + ventas;
+  const rsis     = marketData.map(d => parseFloat(d['rsi']||d['rsi14']||0)).filter(r => r > 0);
+  const avgRSI   = rsis.length ? (rsis.reduce((a,b) => a+b, 0) / rsis.length).toFixed(1) : '—';
+
+  document.getElementById('statOp').textContent     = total;
+  document.getElementById('statCompra').textContent = compras;
+  document.getElementById('statVenta').textContent  = ventas;
+  document.getElementById('statRSI').textContent    = avgRSI;
+}
+
+// ===================== POPUP =====================
+function showPopup(ticker) {
+  selectedTicker = ticker;
+  const d = marketData.find(r => (r['ticker']||'').toUpperCase() === ticker.toUpperCase());
+  if (!d) return;
+
+  document.getElementById('popupTicker').textContent = ticker;
+
+  const precio   = parseFloat(d['precio']) || 0;
+  const varp     = parseFloat(d['var%'] || d['var %'] || 0);
+  const rsi      = parseFloat(d['rsi'] || d['rsi14'] || 0);
+  const macd     = parseFloat(d['macd'] || 0);
+  const sma21    = parseFloat(d['sma21'] || 0);
+  const koncorde = parseFloat(d['koncorde'] || d['koncordelike'] || d['koncorde '] || 0);
+  const op       = d['oportunidad'] || 'NEUTRO';
+  const tendencia = d['tendencia'] || '—';
+
+  const items = [
+    ['Precio', precio > 0 ? '$' + precio.toFixed(2) : '—'],
+    ['Variación', (varp >= 0 ? '+' : '') + varp.toFixed(2) + '%'],
+    ['RSI(14)', rsi > 0 ? rsi.toFixed(2) : '—'],
+    ['MACD', macd.toFixed(3)],
+    ['SMA21', sma21 > 0 ? '$' + sma21.toFixed(2) : '—'],
+    ['Koncorde', koncorde.toFixed(2)],
+    ['Tendencia', tendencia],
+    ['Señal', op],
+  ];
+
+  document.getElementById('popupGrid').innerHTML = items.map(([label, value]) => `
+    <div class="popup-item">
+      <div class="popup-item-label">${label}</div>
+      <div class="popup-item-value">${value}</div>
+    </div>`).join('');
+
+  document.getElementById('popupOverlay').classList.add('show');
+}
+
+function closePopup() {
+  document.getElementById('popupOverlay').classList.remove('show');
+  selectedTicker = null;
+}
+
+function analyzeTickerFromPopup() {
+  closePopup();
+  if (selectedTicker) {
+    sendMessage(`Analizá en detalle la acción ${selectedTicker} con todos los datos disponibles`);
+  }
+}
+
+// ===================== CHAT =====================
+function addMessage(role, text) {
+  const container = document.getElementById('chatMessages');
+  const time = new Date().toLocaleTimeString('es-AR', {hour:'2-digit', minute:'2-digit'});
+  const isAI = role === 'ai';
+
+  const div = document.createElement('div');
+  div.className = `msg ${role}`;
+  div.innerHTML = `
+    <div class="msg-avatar">${isAI ? 'M' : 'Vos'}</div>
+    <div>
+      <div class="msg-bubble">${text.replace(/\n/g, '<br>')}</div>
+      <div class="msg-time">${time}</div>
+    </div>`;
+
+  container.appendChild(div);
+  container.scrollTop = container.scrollHeight;
+}
+
+function showTyping() {
+  const container = document.getElementById('chatMessages');
+  const div = document.createElement('div');
+  div.className = 'typing';
+  div.id = 'typingIndicator';
+  div.innerHTML = `
+    <div class="msg-avatar" style="background:linear-gradient(135deg,#7c3aed,#00e5ff);color:white;width:28px;height:28px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0">M</div>
+    <div class="typing-dots"><span></span><span></span><span></span></div>`;
+  container.appendChild(div);
+  container.scrollTop = container.scrollHeight;
+}
+
+function hideTyping() {
+  const el = document.getElementById('typingIndicator');
+  if (el) el.remove();
+}
+
+async function sendMessage(text) {
+  const input = document.getElementById('chatInput');
+  const msg   = text || input.value.trim();
+  if (!msg) return;
+
+  if (!text) {
+    input.value = '';
+    input.style.height = 'auto';
+  }
+
+  addMessage('user', msg);
+  showTyping();
+
+  try {
+    const response = await callGemini(msg);
+    hideTyping();
+    addMessage('ai', response);
+  } catch(e) {
+    hideTyping();
+    addMessage('ai', 'Hubo un error al consultar la IA. Verificá tu conexión e intentá de nuevo.');
+    console.error(e);
+  }
+}
+
+function quickAction(text) {
+  sendMessage(text);
+}
+
+// ===================== GEMINI API =====================
+async function callGemini(userMessage) {
+  const context = buildContext();
+
+  const systemPrompt = `Sos MARCE, un agente de inversiones autónomo e inteligente especializado en análisis técnico del mercado estadounidense. Tenés acceso en tiempo real a datos de ${marketData.length} acciones incluyendo precios, RSI, MACD, medias móviles y el indicador KoncordeLike (mide acumulación/distribución institucional).
+
+Tu personalidad: sos directo, confiado, analítico. No das vueltas. Cuando ves una oportunidad clara la decís sin rodeos. Cuando hay riesgo lo advertís. Usás los datos para razonar, no solo para reportar números.
+
+Contexto del mercado AHORA MISMO:
+${context}
+
+Reglas para responder:
+- Máximo 8 líneas por respuesta
+- Usá bullets (•) para listar cosas
+- Siempre justificá tus conclusiones con los datos
+- Si te preguntan por una acción específica, analizá todos sus indicadores juntos
+- Señal COMPRA fuerte = RSI<30 + MACD alcista + Koncorde positivo + precio sobre SMA21
+- Señal VENTA fuerte = RSI>70 + MACD bajista + Koncorde negativo + precio bajo SMA21
+- Respondé siempre en español`;
+
+  const body = {
+    contents: [{
+      parts: [{
+        text: systemPrompt + '\n\nPregunta/solicitud del usuario: ' + userMessage
+      }]
+    }],
+    generationConfig: {
+      temperature: 0.7,
+      maxOutputTokens: 500,
+    }
+  };
+
+  const res = await fetch(SHEET_API_URL, {
+    method: 'POST',
+    headers: {'Content-Type': 'text/plain;charset=utf-8'},
+    body: JSON.stringify(body)
+  });
+  if (!res.ok) throw new Error('Error ' + res.status);
+  const data = await res.json();
+  return data.reply || 'Sin respuesta de la IA.';
+}
+
+// ===================== CONTEXT BUILDER =====================
+function buildContext() {
+  if (!marketData.length) return 'Sin datos de mercado disponibles.';
+
+  const compras = marketData.filter(d => (d['oportunidad']||'') === 'COMPRA');
+  const ventas  = marketData.filter(d => (d['oportunidad']||'') === 'VENTA');
+
+  const rsiLow  = marketData
+    .filter(d => parseFloat(d['rsi']||d['rsi14']||100) < 30)
+    .map(d => `${d['ticker']}(RSI:${parseFloat(d['rsi']||d['rsi14']||0).toFixed(1)})`);
+
+  const rsiHigh = marketData
+    .filter(d => parseFloat(d['rsi']||d['rsi14']||0) > 70)
+    .map(d => `${d['ticker']}(RSI:${parseFloat(d['rsi']||d['rsi14']||0).toFixed(1)})`);
+
+  const topKon  = marketData
+    .filter(d => parseFloat(d['koncorde']||d['koncordelike']||d['koncorde ']||0) > 50)
+    .map(d => `${d['ticker']}(K:${parseFloat(d['koncorde']||d['koncordelike']||d['koncorde ']||0).toFixed(0)})`);
+
+  // Datos completos de cada acción para análisis individual
+  const detalles = marketData.slice(0, 50).map(d => {
+    const t  = d['ticker'] || '';
+    const p  = parseFloat(d['precio']) || 0;
+    const r  = parseFloat(d['rsi']||d['rsi14']||0);
+    const m  = parseFloat(d['macd']||0);
+    const s  = parseFloat(d['señal']||d['signal']||d['senal']||0);
+    const s21 = parseFloat(d['sma21']||0);
+    const k  = parseFloat(d['koncorde']||d['koncordelike']||d['koncorde ']||0);
+    const op = d['oportunidad']||'NEUTRO';
+    const tr = d['tendencia']||'';
+    if (!t) return '';
+    return `${t}: P=$${p.toFixed(2)} RSI=${r.toFixed(1)} MACD=${m.toFixed(2)} SMA21=${s21.toFixed(2)} Kon=${k.toFixed(1)} Tend=${tr} Señal=${op}`;
+  }).filter(Boolean);
+
+  return `
+RESUMEN: ${marketData.length} acciones monitoreadas
+COMPRAS (${compras.length}): ${compras.map(d=>d['ticker']).join(', ') || 'ninguna'}
+VENTAS  (${ventas.length}):  ${ventas.map(d=>d['ticker']).join(', ')  || 'ninguna'}
+RSI SOBREVENTA (<30): ${rsiLow.join(', ') || 'ninguna'}
+RSI SOBRECOMPRA (>70): ${rsiHigh.join(', ') || 'ninguna'}
+KONCORDE ALTO (>50): ${topKon.join(', ') || 'ninguno'}
+
+DATOS COMPLETOS POR ACCIÓN:
+${detalles.join('\n')}`;
+}
+
+// ===================== AUTO-ANÁLISIS =====================
+async function runAutoAnalysis() {
+  if (!marketData.length) return;
+
+  const compras = marketData.filter(d => (d['oportunidad']||'') === 'COMPRA');
+  const ventas  = marketData.filter(d => (d['oportunidad']||'') === 'VENTA');
+
+  if (compras.length > 0 || ventas.length > 0) {
+    showTyping();
+    try {
+      const prompt = `Hacé un análisis proactivo del mercado ahora mismo. Hay ${compras.length} señales de COMPRA y ${ventas.length} de VENTA. Mencioná las más destacadas y explicá por qué merecen atención. Sé directo y concreto.`;
+      const response = await callGemini(prompt);
+      hideTyping();
+      addMessage('ai', response);
+    } catch(e) {
+      hideTyping();
+    }
+  }
+}
+
+// ===================== INIT =====================
+async function init() {
+  // Mensaje de bienvenida
+  setTimeout(() => {
+    addMessage('ai', '¡Buen día! Soy MARCE, tu agente de inversiones. Estoy analizando el mercado en este momento...\n\nPodés preguntarme lo que quieras, hacer clic en cualquier acción de la tabla para ver su detalle, o usar los botones rápidos de abajo.');
+  }, 500);
+
+  // Cargar datos
+  const ok = await loadData();
+
+  if (ok && marketData.length > 0) {
+    // Análisis automático inicial
+    setTimeout(() => runAutoAnalysis(), 1500);
+
+    // Auto-actualizar datos cada 5 minutos
+    setInterval(loadData, 5 * 60 * 1000);
+
+    // Auto-análisis cada 30 minutos
+    setInterval(() => {
+      loadData().then(() => runAutoAnalysis());
+    }, 30 * 60 * 1000);
+  } else {
+    setTimeout(() => {
+      document.getElementById('loadingOverlay').style.display = 'none';
+      addMessage('ai', 'Tuve un problema al cargar los datos del mercado. Verificá que el Sheet esté publicado y hacé clic en "Actualizar".');
+    }, 2500);
+  }
+}
+
+// Cerrar popup al hacer clic fuera
+document.getElementById('popupOverlay').addEventListener('click', function(e) {
+  if (e.target === this) closePopup();
+});
+
+// Arrancar
+init();
+</script>
+</body>
+</html>
