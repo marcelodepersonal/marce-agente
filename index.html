@@ -755,15 +755,18 @@ let autoAnalysisInterval = null;
 async function loadData() {
   try {
     document.getElementById('statusText').textContent = 'Actualizando...';
-    const res  = await fetch(SHEET_API_URL + '?t=' + Date.now());
-    const json = await res.json();
-    if (!json || !json.length) throw new Error("Sin datos");
-
-    marketData = json.map(row => {
-      const obj = {};
-      Object.keys(row).forEach(k => {
-        const key = k.trim().toLowerCase();
-        const val = String(row[k] || '').trim();
+    const res  = await fetch(SHEET_API_URL + '&t=' + Date.now());
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const csv  = await res.text();
+    const lines = csv.trim().split(/\r?\n/);
+    if (lines.length < 2) throw new Error("Sin datos");
+    const headers = lines[0].split(',').map(h => h.trim());
+    const parsed  = lines.slice(1).map(line => {
+      const vals = line.split(',');
+      const obj  = {};
+      headers.forEach((h, i) => {
+        const key = h.toLowerCase();
+        const val = (vals[i] || '').trim();
         obj[key] = val;
         if (key.startsWith('var')) obj['var%'] = val;
         if (key.startsWith('koncorde')) obj['koncorde'] = val;
@@ -771,7 +774,10 @@ async function loadData() {
         if (key === 'rsi14') obj['rsi'] = val;
       });
       return obj;
-    }).filter(d => d['ticker'] && d['ticker'] !== '');
+    });
+    const json = parsed;
+    if (!json || !json.length) throw new Error("Sin datos");
+    marketData = json.filter(d => d['ticker'] && d['ticker'] !== '');
 
     renderTable();
     updateStats();
@@ -1010,14 +1016,16 @@ Reglas para responder:
     }
   };
 
-  const res = await fetch(SHEET_API_URL, {
+  const res  = await fetch(GEMINI_URL, {
     method: 'POST',
-    headers: {'Content-Type': 'text/plain;charset=utf-8'},
+    headers: {'Content-Type': 'application/json'},
     body: JSON.stringify(body)
   });
-  if (!res.ok) throw new Error('Error ' + res.status);
+
+  if (!res.ok) throw new Error('API Error: ' + res.status);
+
   const data = await res.json();
-  return data.reply || 'Sin respuesta de la IA.';
+  return data.candidates?.[0]?.content?.parts?.[0]?.text || 'Sin respuesta de la IA.';
 }
 
 // ===================== CONTEXT BUILDER =====================
