@@ -743,7 +743,7 @@
 <script>
 // ===================== CONFIG =====================
 const GEMINI_API_KEY = "AIzaSyAsmhc-IASTyOascEb_el8rYFEqxbw9Q-c";
-const SHEET_API_URL = "https://script.google.com/macros/s/AKfycbzxi1YJKFibKIOEE_mGMcYWa7FxnFA02rabZOH9Mr4UMWtTqbN7FXgM_gtDp3Eos4vp/exec";
+const SHEET_API_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQHqJWIkZIKkSZ4GGy6J68-vD4dsgs81v4u1X8pmcmomcif2_GO8L9AHb_ztio8HUBzM8J9GWRXaIUv/pub?gid=942517447&single=true&output=csv";
 const GEMINI_URL     = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`;
 
 // ===================== STATE =====================
@@ -755,13 +755,24 @@ let autoAnalysisInterval = null;
 async function loadData() {
   try {
     document.getElementById('statusText').textContent = 'Actualizando...';
-    const res  = await fetch(SHEET_API_URL + '?t=' + Date.now());
-    const json = await res.json();
-    if (!json || !json.length) throw new Error("Sin datos");
-
-    marketData = json.map(row => {
-      const obj = {};
-      Object.keys(row).forEach(k => obj[k.trim().toLowerCase()] = String(row[k] || '').trim());
+    const res  = await fetch(SHEET_API_URL + '&t=' + Date.now());
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const csv  = await res.text();
+    const lines = csv.trim().split(/\r?\n/);
+    if (lines.length < 2) throw new Error("Sin datos");
+    const headers = lines[0].split(',').map(h => h.trim());
+    marketData = lines.slice(1).map(line => {
+      const vals = line.split(',');
+      const obj  = {};
+      headers.forEach((h, i) => {
+        const key = h.toLowerCase().trim();
+        const val = (vals[i] || '').trim();
+        obj[key] = val;
+        if (key.startsWith('var')) obj['var%'] = val;
+        if (key.startsWith('koncorde')) obj['koncorde'] = val;
+        if (key === 'señal' || key === 'senal' || key === 'signal') obj['señal'] = val;
+        if (key === 'rsi14') obj['rsi'] = val;
+      });
       return obj;
     }).filter(d => d['ticker'] && d['ticker'] !== '');
 
