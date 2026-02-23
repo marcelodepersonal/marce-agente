@@ -780,7 +780,7 @@
 
 <script>
 // ===================== CONFIG =====================
-const GEMINI_API_KEY = "AIzaSyCznqdRzGpspJHc0gtVQYPZPol8l1jDzEY";
+const GEMINI_API_KEY = "AIzaSyCxBCPS1wkv2ARBCe_AiAYQVq6k4et1BUk";
 const SHEET_API_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQHqJWIkZIKkSZ4GGy6J68-vD4dsgs81v4u1X8pmcmomcif2_GO8L9AHb_ztio8HUBzM8J9GWRXaIUv/pub?gid=942517447&single=true&output=csv";
 const GEMINI_URL     = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`;
 
@@ -866,12 +866,37 @@ function renderPagination() {
   prev.disabled = currentPage === 1;
   prev.onclick = () => { if(currentPage > 1){ currentPage--; renderTable(); }};
   pg.appendChild(prev);
-  for (let i = 1; i <= total; i++) {
+  // Show max 7 page buttons around current page
+  let startP = Math.max(1, currentPage - 3);
+  let endP   = Math.min(total, currentPage + 3);
+  if (startP > 1) {
+    const b = document.createElement('button');
+    b.className = 'page-btn'; b.textContent = '1';
+    b.onclick = () => { currentPage = 1; renderTable(); };
+    pg.appendChild(b);
+    if (startP > 2) {
+      const sp = document.createElement('span');
+      sp.className = 'page-info'; sp.textContent = '...';
+      pg.appendChild(sp);
+    }
+  }
+  for (let i = startP; i <= endP; i++) {
     const btn = document.createElement('button');
     btn.className = 'page-btn' + (i === currentPage ? ' active' : '');
     btn.textContent = i;
     btn.onclick = (p => () => { currentPage = p; renderTable(); })(i);
     pg.appendChild(btn);
+  }
+  if (endP < total) {
+    if (endP < total - 1) {
+      const sp = document.createElement('span');
+      sp.className = 'page-info'; sp.textContent = '...';
+      pg.appendChild(sp);
+    }
+    const b = document.createElement('button');
+    b.className = 'page-btn'; b.textContent = total;
+    b.onclick = () => { currentPage = total; renderTable(); };
+    pg.appendChild(b);
   }
   const next = document.createElement('button');
   next.className = 'page-btn';
