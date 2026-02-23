@@ -1013,7 +1013,7 @@ Reglas para responder:
     }],
     generationConfig: {
       temperature: 0.7,
-      maxOutputTokens: 500,
+      maxOutputTokens: 800,
     }
   };
 
@@ -1049,7 +1049,7 @@ function buildContext() {
     .map(d => `${d['ticker']}(K:${parseFloat(d['koncorde']||d['koncordelike']||d['koncorde ']||0).toFixed(0)})`);
 
   // Datos completos de cada acción para análisis individual
-  const detalles = marketData.slice(0, 50).map(d => {
+  const detalles = marketData.filter(d => parseFloat(d['precio']||0) > 0).slice(0, 30).map(d => {
     const t  = d['ticker'] || '';
     const p  = parseFloat(d['precio']) || 0;
     const r  = parseFloat(d['rsi']||d['rsi14']||0);
