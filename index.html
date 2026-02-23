@@ -119,7 +119,6 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    flex-shrink: 0;
   }
 
   .panel-title {
@@ -765,15 +764,14 @@ async function loadData() {
     const res  = await fetch(SHEET_API_URL + '&t=' + Date.now());
     if (!res.ok) throw new Error('HTTP ' + res.status);
     const csv  = await res.text();
-    const lines = csv.trim().split(/\r?\n/);
-    if (lines.length < 2) throw new Error("Sin datos");
-    const headers = lines[0].split(',').map(h => h.trim());
-    marketData = lines.slice(1).map(line => {
-      const vals = line.split(',');
-      const obj  = {};
+    const rawRows = parseCSV(csv);
+    if (rawRows.length < 2) throw new Error("Sin datos");
+    const headers = rawRows[0].map(h => h.trim());
+    marketData = rawRows.slice(1).map(row => {
+      const obj = {};
       headers.forEach((h, i) => {
         const key = h.toLowerCase().trim();
-        const val = (vals[i] || '').trim();
+        const val = (row[i] || '').trim();
         obj[key] = val;
         if (key.startsWith('var')) obj['var%'] = val;
         if (key.startsWith('koncorde')) obj['koncorde'] = val;
@@ -918,9 +916,10 @@ function closePopup() {
 }
 
 function analyzeTickerFromPopup() {
+  const ticker = selectedTicker;
   closePopup();
-  if (selectedTicker) {
-    sendMessage(`Analizá en detalle la acción ${selectedTicker} con todos los datos disponibles`);
+  if (ticker) {
+    sendMessage(`Analizá en detalle la acción ${ticker} con todos los datos disponibles`);
   }
 }
 
@@ -1000,7 +999,7 @@ Contexto del mercado AHORA MISMO:
 ${context}
 
 Reglas para responder:
-- Máximo 5 líneas por respuesta
+- Máximo 8 líneas por respuesta
 - Usá bullets (•) para listar cosas
 - Siempre justificá tus conclusiones con los datos
 - Si te preguntan por una acción específica, analizá todos sus indicadores juntos
@@ -1016,7 +1015,7 @@ Reglas para responder:
     }],
     generationConfig: {
       temperature: 0.7,
-      maxOutputTokens: 400,
+      maxOutputTokens: 500,
     }
   };
 
