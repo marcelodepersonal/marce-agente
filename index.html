@@ -782,7 +782,7 @@
 // ===================== CONFIG =====================
 const GEMINI_API_KEY = "AIzaSyCT2FXyCcUxur1BlamCPqNo_2uZ01_rdeg";
 const SHEET_API_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQHqJWIkZIKkSZ4GGy6J68-vD4dsgs81v4u1X8pmcmomcif2_GO8L9AHb_ztio8HUBzM8J9GWRXaIUv/pub?gid=942517447&single=true&output=csv";
-const GEMINI_URL     = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`;
+const GEMINI_URL     = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`;
 
 // ===================== STATE =====================
 let marketData    = [];
@@ -1091,21 +1091,7 @@ function quickAction(text) {
 async function callGemini(userMessage) {
   const context = buildContext();
 
-  const systemPrompt = `Sos MARCE, un agente de inversiones autónomo e inteligente especializado en análisis técnico del mercado estadounidense. Tenés acceso en tiempo real a datos de ${marketData.length} acciones incluyendo precios, RSI, MACD, medias móviles y el indicador KoncordeLike (mide acumulación/distribución institucional).
-
-Tu personalidad: sos directo, confiado, analítico. No das vueltas. Cuando ves una oportunidad clara la decís sin rodeos. Cuando hay riesgo lo advertís. Usás los datos para razonar, no solo para reportar números.
-
-Contexto del mercado AHORA MISMO:
-${context}
-
-Reglas para responder:
-- Máximo 8 líneas por respuesta
-- Usá bullets (•) para listar cosas
-- Siempre justificá tus conclusiones con los datos
-- Si te preguntan por una acción específica, analizá todos sus indicadores juntos
-- Señal COMPRA fuerte = RSI<30 + MACD alcista + Koncorde positivo + precio sobre SMA21
-- Señal VENTA fuerte = RSI>70 + MACD bajista + Koncorde negativo + precio bajo SMA21
-- Respondé siempre en español`;
+  const systemPrompt = "Sos MARCE, agente de inversiones especializado en analisis tecnico. Datos de " + marketData.length + " acciones disponibles. Contexto: " + context + ". Responde en espanol, maximo 6 lineas, con datos concretos.";
 
   const body = {
     contents: [{
