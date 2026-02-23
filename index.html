@@ -1134,47 +1134,15 @@ Reglas para responder:
 // ===================== CONTEXT BUILDER =====================
 function buildContext() {
   if (!marketData.length) return 'Sin datos de mercado disponibles.';
-
-  const compras = marketData.filter(d => (d['oportunidad']||'') === 'COMPRA');
-  const ventas  = marketData.filter(d => (d['oportunidad']||'') === 'VENTA');
-
-  const rsiLow  = marketData
-    .filter(d => parseFloat(d['rsi']||d['rsi14']||100) < 30)
-    .map(d => `${d['ticker']}(RSI:${parseFloat(d['rsi']||d['rsi14']||0).toFixed(1)})`);
-
-  const rsiHigh = marketData
-    .filter(d => parseFloat(d['rsi']||d['rsi14']||0) > 70)
-    .map(d => `${d['ticker']}(RSI:${parseFloat(d['rsi']||d['rsi14']||0).toFixed(1)})`);
-
-  const topKon  = marketData
-    .filter(d => parseFloat(d['koncorde']||d['koncordelike']||d['koncorde ']||0) > 50)
-    .map(d => `${d['ticker']}(K:${parseFloat(d['koncorde']||d['koncordelike']||d['koncorde ']||0).toFixed(0)})`);
-
-  // Datos completos de cada acción para análisis individual
-  const detalles = _sortedData.filter(d => parseFloat(d['precio']||0) > 0).slice(0, 15).map(d => {
-    const t  = d['ticker'] || '';
-    const p  = parseFloat(d['precio']) || 0;
-    const r  = parseFloat(d['rsi']||d['rsi14']||0);
-    const m  = parseFloat(d['macd']||0);
-    const s  = parseFloat(d['señal']||d['signal']||d['senal']||0);
-    const s21 = parseFloat(d['sma21']||0);
-    const k  = parseFloat(d['koncorde']||d['koncordelike']||d['koncorde ']||0);
-    const op = d['oportunidad']||'NEUTRO';
-    const tr = d['tendencia']||'';
-    if (!t) return '';
-    return `${t}: P=$${p.toFixed(2)} RSI=${r.toFixed(1)} MACD=${m.toFixed(2)} SMA21=${s21.toFixed(2)} Kon=${k.toFixed(1)} Tend=${tr} Señal=${op}`;
-  }).filter(Boolean);
-
-  return `
-RESUMEN: ${marketData.length} acciones monitoreadas
-COMPRAS (${compras.length}): ${compras.map(d=>d['ticker']).join(', ') || 'ninguna'}
-VENTAS  (${ventas.length}):  ${ventas.map(d=>d['ticker']).join(', ')  || 'ninguna'}
-RSI SOBREVENTA (<30): ${rsiLow.join(', ') || 'ninguna'}
-RSI SOBRECOMPRA (>70): ${rsiHigh.join(', ') || 'ninguna'}
-KONCORDE ALTO (>50): ${topKon.join(', ') || 'ninguno'}
-
-DATOS COMPLETOS POR ACCIÓN:
-${detalles.join('\n')}`;
+  const withPrice = _sortedData.filter(d => parseFloat(d['precio']||0) > 0);
+  const compras = withPrice.filter(d => (d['señal']||d['oportunidad']||'') === 'COMPRA').slice(0,5)
+    .map(d => `${d['ticker']}($${parseFloat(d['precio']).toFixed(2)},RSI:${parseFloat(d['rsi']||0).toFixed(0)},K:${parseFloat(d['koncorde']||0).toFixed(0)})`).join(', ');
+  const ventas = withPrice.filter(d => (d['señal']||d['oportunidad']||'') === 'VENTA').slice(0,5)
+    .map(d => `${d['ticker']}($${parseFloat(d['precio']).toFixed(2)},RSI:${parseFloat(d['rsi']||0).toFixed(0)})`).join(', ');
+  const top10 = withPrice.slice(0,10).map(d =>
+    `${d['ticker']}:$${parseFloat(d['precio']).toFixed(2)},RSI${parseFloat(d['rsi']||0).toFixed(0)},K${parseFloat(d['koncorde']||0).toFixed(0)},${d['tendencia']||'-'}`
+  ).join(' | ');
+  return `Mercado: ${withPrice.length} acciones con datos. COMPRA: ${compras||'ninguna'}. VENTA: ${ventas||'ninguna'}. Top10: ${top10}.`;
 }
 
 // ===================== AUTO-ANÁLISIS =====================
