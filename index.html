@@ -852,9 +852,10 @@ function parseCSV(text) {
 // ===================== RENDER TABLE =====================
 const ROWS_PER_PAGE = 25;
 let currentPage = 1;
+let _sortedData = [];
 
-function renderPagination(totalCount) {
-  const total = Math.ceil((totalCount || marketData.length) / ROWS_PER_PAGE);
+function renderPagination() {
+  const total = Math.ceil(_sortedData.length / ROWS_PER_PAGE);
   const pg = document.getElementById('pagination');
   if (!pg) return;
   pg.innerHTML = '';
@@ -880,7 +881,7 @@ function renderPagination(totalCount) {
   pg.appendChild(next);
   const info = document.createElement('span');
   info.className = 'page-info';
-  info.textContent = `${(currentPage-1)*ROWS_PER_PAGE+1}-${Math.min(currentPage*ROWS_PER_PAGE,totalCount||marketData.length)} de ${totalCount||marketData.length}`;
+  info.textContent = `${(currentPage-1)*ROWS_PER_PAGE+1}-${Math.min(currentPage*ROWS_PER_PAGE,_sortedData.length)} de ${_sortedData.length}`;
   pg.appendChild(info);
 }
 
@@ -892,14 +893,14 @@ function renderTable() {
     return;
   }
 
-  // Tickers con datos primero, luego sin datos
-  const _sorted = [
+  // Sort: tickers con precio primero
+  _sortedData = [
     ...marketData.filter(d => parseFloat(d['precio']||0) > 0),
-    ...marketData.filter(d => parseFloat(d['precio']||0) <= 0)
+    ...marketData.filter(d => !(parseFloat(d['precio']||0) > 0))
   ];
-  renderPagination(_sorted.length);
+  renderPagination();
   const _start = (currentPage - 1) * ROWS_PER_PAGE;
-  const _pageData = _sorted.slice(_start, _start + ROWS_PER_PAGE);
+  const _pageData = _sortedData.slice(_start, _start + ROWS_PER_PAGE);
   tbody.innerHTML = _pageData.map(d => {
     const ticker   = d['ticker'] || d[''] || '';
     const precio   = parseFloat(d['precio']) || 0;
@@ -1125,7 +1126,7 @@ function buildContext() {
     .map(d => `${d['ticker']}(K:${parseFloat(d['koncorde']||d['koncordelike']||d['koncorde ']||0).toFixed(0)})`);
 
   // Datos completos de cada acción para análisis individual
-  const detalles = marketData.filter(d => parseFloat(d['precio']||0) > 0).slice(0, 20).map(d => {
+  const detalles = _sortedData.filter(d => parseFloat(d['precio']||0) > 0).slice(0, 15).map(d => {
     const t  = d['ticker'] || '';
     const p  = parseFloat(d['precio']) || 0;
     const r  = parseFloat(d['rsi']||d['rsi14']||0);
