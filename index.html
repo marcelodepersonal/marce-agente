@@ -812,6 +812,11 @@ async function loadData() {
       });
       return obj;
     }).filter(d => d['ticker'] && d['ticker'] !== '');
+    // Populate _sortedData immediately after loading
+    _sortedData = [
+      ...marketData.filter(d => parseFloat(d['precio']||0) > 0),
+      ...marketData.filter(d => !(parseFloat(d['precio']||0) > 0))
+    ];
 
     renderTable();
     updateStats();
@@ -918,11 +923,6 @@ function renderTable() {
     return;
   }
 
-  // Sort: tickers con precio primero
-  _sortedData = [
-    ...marketData.filter(d => parseFloat(d['precio']||0) > 0),
-    ...marketData.filter(d => !(parseFloat(d['precio']||0) > 0))
-  ];
   renderPagination();
   const _start = (currentPage - 1) * ROWS_PER_PAGE;
   const _pageData = _sortedData.slice(_start, _start + ROWS_PER_PAGE);
