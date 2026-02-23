@@ -1000,7 +1000,7 @@ Contexto del mercado AHORA MISMO:
 ${context}
 
 Reglas para responder:
-- Máximo 8 líneas por respuesta
+- Máximo 5 líneas por respuesta
 - Usá bullets (•) para listar cosas
 - Siempre justificá tus conclusiones con los datos
 - Si te preguntan por una acción específica, analizá todos sus indicadores juntos
@@ -1016,7 +1016,7 @@ Reglas para responder:
     }],
     generationConfig: {
       temperature: 0.7,
-      maxOutputTokens: 800,
+      maxOutputTokens: 400,
     }
   };
 
@@ -1052,7 +1052,7 @@ function buildContext() {
     .map(d => `${d['ticker']}(K:${parseFloat(d['koncorde']||d['koncordelike']||d['koncorde ']||0).toFixed(0)})`);
 
   // Datos completos de cada acción para análisis individual
-  const detalles = marketData.filter(d => parseFloat(d['precio']||0) > 0).slice(0, 30).map(d => {
+  const detalles = marketData.filter(d => parseFloat(d['precio']||0) > 0).slice(0, 20).map(d => {
     const t  = d['ticker'] || '';
     const p  = parseFloat(d['precio']) || 0;
     const r  = parseFloat(d['rsi']||d['rsi14']||0);
