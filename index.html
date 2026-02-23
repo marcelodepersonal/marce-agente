@@ -780,7 +780,7 @@
 
 <script>
 // ===================== CONFIG =====================
-const GEMINI_API_KEY = "AIzaSyCT2FXyCcUxur1BlamCPqNo_2uZ01_rdeg";
+const GEMINI_API_KEY = (function(){ const k = localStorage.getItem('gk'); if(!k){ const n = prompt('Ingresa tu Gemini API Key:'); if(n){ localStorage.setItem('gk',n); return n; } } return k||''; })();
 const SHEET_API_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQHqJWIkZIKkSZ4GGy6J68-vD4dsgs81v4u1X8pmcmomcif2_GO8L9AHb_ztio8HUBzM8J9GWRXaIUv/pub?gid=942517447&single=true&output=csv";
 const GEMINI_URL     = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`;
 
