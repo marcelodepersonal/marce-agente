@@ -154,7 +154,6 @@
     gap: 1px;
     background: var(--border);
     border-bottom: 1px solid var(--border);
-    flex-shrink: 0;
   }
 
   .stat-card {
@@ -184,10 +183,40 @@
   /* TABLE */
   .table-wrap {
     flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    min-height: 0;
+  }
+  .table-scroll {
+    flex: 1;
     overflow-y: auto;
     min-height: 0;
-    height: 0;
   }
+  .pagination {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    padding: 8px 12px;
+    border-top: 1px solid var(--border);
+    flex-shrink: 0;
+    background: var(--surface);
+    flex-wrap: wrap;
+  }
+  .page-btn {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 3px 9px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 11px;
+    font-family: var(--font-mono);
+  }
+  .page-btn:hover { background: var(--border); }
+  .page-btn.active { background: var(--accent); color: #000; border-color: var(--accent); }
+  .page-info { font-size: 11px; color: var(--muted); margin: 0 6px; }
 
   .table-wrap::-webkit-scrollbar { width: 4px; }
   .table-wrap::-webkit-scrollbar-track { background: var(--bg); }
@@ -696,6 +725,7 @@
     </div>
 
     <div class="table-wrap">
+      <div class="table-scroll">
       <table>
         <thead>
           <tr>
@@ -712,6 +742,8 @@
           <tr><td colspan="7" style="text-align:center;color:var(--muted);padding:40px">Cargando...</td></tr>
         </tbody>
       </table>
+      </div>
+      <div class="pagination" id="pagination"></div>
     </div>
   </div>
 
@@ -748,7 +780,7 @@
 
 <script>
 // ===================== CONFIG =====================
-const GEMINI_API_KEY = "AIzaSyAOzivqC8sYmdsgwRlp4XXWTFS8bY5x4ww";
+const GEMINI_API_KEY = "AIzaSyCznqdRzGpspJHc0gtVQYPZPol8l1jDzEY";
 const SHEET_API_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQHqJWIkZIKkSZ4GGy6J68-vD4dsgs81v4u1X8pmcmomcif2_GO8L9AHb_ztio8HUBzM8J9GWRXaIUv/pub?gid=942517447&single=true&output=csv";
 const GEMINI_URL     = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`;
 
@@ -818,6 +850,40 @@ function parseCSV(text) {
 }
 
 // ===================== RENDER TABLE =====================
+const ROWS_PER_PAGE = 25;
+let currentPage = 1;
+
+function renderPagination() {
+  const total = Math.ceil(marketData.length / ROWS_PER_PAGE);
+  const pg = document.getElementById('pagination');
+  if (!pg) return;
+  pg.innerHTML = '';
+  if (total <= 1) return;
+  const prev = document.createElement('button');
+  prev.className = 'page-btn';
+  prev.textContent = '◀';
+  prev.disabled = currentPage === 1;
+  prev.onclick = () => { if(currentPage > 1){ currentPage--; renderTable(); }};
+  pg.appendChild(prev);
+  for (let i = 1; i <= total; i++) {
+    const btn = document.createElement('button');
+    btn.className = 'page-btn' + (i === currentPage ? ' active' : '');
+    btn.textContent = i;
+    btn.onclick = (p => () => { currentPage = p; renderTable(); })(i);
+    pg.appendChild(btn);
+  }
+  const next = document.createElement('button');
+  next.className = 'page-btn';
+  next.textContent = '▶';
+  next.disabled = currentPage === total;
+  next.onclick = () => { if(currentPage < total){ currentPage++; renderTable(); }};
+  pg.appendChild(next);
+  const info = document.createElement('span');
+  info.className = 'page-info';
+  info.textContent = `${(currentPage-1)*ROWS_PER_PAGE+1}-${Math.min(currentPage*ROWS_PER_PAGE,marketData.length)} de ${marketData.length}`;
+  pg.appendChild(info);
+}
+
 function renderTable() {
   const tbody = document.getElementById('tableBody');
 
@@ -826,7 +892,10 @@ function renderTable() {
     return;
   }
 
-  tbody.innerHTML = marketData.map(d => {
+  renderPagination();
+  const _start = (currentPage - 1) * ROWS_PER_PAGE;
+  const _pageData = marketData.slice(_start, _start + ROWS_PER_PAGE);
+  tbody.innerHTML = _pageData.map(d => {
     const ticker   = d['ticker'] || d[''] || '';
     const precio   = parseFloat(d['precio']) || 0;
     const varp     = parseFloat(d['var%'] || d['var %'] || d['variación'] || 0);
@@ -1015,7 +1084,7 @@ Reglas para responder:
     }],
     generationConfig: {
       temperature: 0.7,
-      maxOutputTokens: 500,
+      maxOutputTokens: 600,
     }
   };
 
